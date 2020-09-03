@@ -29,7 +29,7 @@ Configuration format
 }
 """
 
-import json, http, os, sys, email, smtplib, requests, argparse
+import json, http, os, sys, email, smtplib, requests, argparse, time 
 
 argparse = argparse.ArgumentParser(description='Simple alert system for poor air quality')
 argparse.add_argument('--config', type=str, dest='config', default='/etc/air-alert.json', help='Path to the air quality alert config')
@@ -88,6 +88,9 @@ class SensorJSON():
 		self.last_seen = self.get_field('LastSeen') or 0
 		self.pm25 = self.get_field('PM2_5Value') or 0.0
 		self.aqi = None 
+
+	def pretty_last_seen(self):
+		return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.last_seen))
 
 	"""
 	Returns the specified field or None if not found.
@@ -178,20 +181,20 @@ def main():
 	body = "Poor air quality has been detected in the immediate vicinity of SLAC.\nThose who are sensitive to poor air quality should remain indoors.\nOthers should consider wearing masks or respirators\n\nSummary of the sensors and their detected AQIs:\n\n"
 
 	for sensor in sensor_data:
-		body += "Location: {0}\nAQI: {1}\n\n".format(sensor.label, int(sensor.calc_aqi()))
+		body += "Location: {0}\nLast Sampled: {2}\nAQI: {1}\n\n".format(sensor.label, int(sensor.calc_aqi()), sensor.pretty_last_seen())
 
 	msg.set_content(body)
 
-	
 	s = smtplib.SMTP(smtp_addr, smtp_port)
 	s.ehlo()
 	s.starttls()
-	try:
-		s.login(user=email_addr, password=email_pw)
-	except smtplib.SMTPAuthenticationError:
-		print("Authentication failed for SMTP server")
-	except:
-		print("Error while authenticating SMTP server")
+	if login_required:
+		try:
+			s.login(user=email_addr, password=email_pw)
+		except smtplib.SMTPAuthenticationError:
+			print("Authentication failed for SMTP server")
+		except:
+			print("Error while authenticating SMTP server")
 	s.send_message(msg)
 	s.quit()
 

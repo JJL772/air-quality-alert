@@ -9,6 +9,7 @@ Configuration format
 {
 	"email": {
 		"login_required": true,
+		"use_tls": true,
 		"email_addr": "jeremy.lorelli.1337@gmail.com", // Email address to send FROM 
 		"email_pw": "1234",
 		"smtp_addr": "localhost",
@@ -61,6 +62,7 @@ email_pw = get_or_set_default(cfg['email'], 'email_pw', "")
 smtp_addr = get_or_set_default(cfg['email'], 'smtp_addr', "")
 smtp_port = get_or_set_default(cfg['email'], 'smtp_port', 0)
 addresses = get_or_set_default(cfg['email'], 'addresses', [])
+use_tls = get_or_set_default(cfg['email'], 'use_tls', True)
 report_threshold = get_or_set_default(cfg, 'report_threshold', 150)
 
 sensor_data = []
@@ -188,7 +190,8 @@ def main():
 
 	s = smtplib.SMTP(smtp_addr, smtp_port)
 	s.ehlo()
-	s.starttls()
+	if use_tls:
+		s.starttls()
 	if login_required:
 		try:
 			s.login(user=email_addr, password=email_pw)

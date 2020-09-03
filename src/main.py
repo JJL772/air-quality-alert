@@ -180,8 +180,11 @@ def main():
 	msg = email.message.EmailMessage() 
 	msg['Subject'] = 'Air Quality Alert'
 	msg['From'] = sender_email
-	msg['To'] = 'jeremy.lorelli.1337@gmail.com'
-
+	emails = ""
+	for _email in addresses:
+		emails += str(_email) + ';'
+	msg['To'] = emails
+	
 	body = "Poor air quality has been detected in the immediate vicinity of SLAC.\nThose who are sensitive to poor air quality should remain indoors.\nOthers should consider wearing masks or respirators\n\nSummary of the sensors and their detected AQIs:\n\n"
 
 	for sensor in sensor_data:

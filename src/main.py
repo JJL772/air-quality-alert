@@ -34,6 +34,7 @@ import json, http, os, sys, email, smtplib, requests, argparse, time
 
 argparse = argparse.ArgumentParser(description='Simple alert system for poor air quality')
 argparse.add_argument('--config', type=str, dest='config', default='/etc/air-alert.json', help='Path to the air quality alert config')
+argparse.add_argument('--state-file', type=str, dest='statefile', default='/srv/air-alert-statefile.json', help='File where the app state is saved')
 args = argparse.parse_args()
 
 # Load the config

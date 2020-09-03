@@ -69,6 +69,33 @@ sender_email = get_or_set_default(cfg['email'], 'sender_email', '')
 
 sensor_data = []
 
+
+
+"""
+GlobalState class which handles any and all global state.
+It allows the state to be saved to a file and loaded lader, in case of a restart
+"""
+class GlobalState():
+	def __init__(self, state_save_file: str):
+		self.file = state_save_file
+		self.data = dict()
+
+	def set_value(self, key: str, val):
+		self.data[key] = val
+	
+	def get_value(self, key: str):
+		return self.data[key]
+	
+	def save(self):
+		with open(self.file, "w") as fp:
+			json.dump(self.data, fp)
+
+	def load(self):
+		with open(self.file, "r") as fp:
+			self.data = json.load(fp)
+			if not self.data:
+				self.data = dict()
+
 """
 Simple class that manages json data for each sensor
 Check is_valid to ensure that the sensor data is valid 
@@ -162,6 +189,11 @@ def grab_sensors():
 		sensor_data.append(SensorJSON.read_sensor(sensor))
 
 
+def newmain():
+	print("Populating sensor data...")
+	grab_sensors()
+	print("Done.")
+
 def main():
 	print("Populating sensor data...")
 	grab_sensors()
@@ -185,7 +217,7 @@ def main():
 	for _email in addresses:
 		emails += str(_email) + ';'
 	msg['To'] = emails
-	
+
 	body = "Poor air quality has been detected in the immediate vicinity of SLAC.\nThose who are sensitive to poor air quality should remain indoors.\nOthers should consider wearing masks or respirators\n\nSummary of the sensors and their detected AQIs:\n\n"
 
 	for sensor in sensor_data:

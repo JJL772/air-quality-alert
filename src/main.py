@@ -64,6 +64,7 @@ smtp_port = get_or_set_default(cfg['email'], 'smtp_port', 0)
 addresses = get_or_set_default(cfg['email'], 'addresses', [])
 use_tls = get_or_set_default(cfg['email'], 'use_tls', True)
 report_threshold = get_or_set_default(cfg, 'report_threshold', 150)
+sender_email = get_or_set_default(cfg['email'], 'sender_email', '')
 
 sensor_data = []
 
@@ -178,7 +179,7 @@ def main():
 
 	msg = email.message.EmailMessage() 
 	msg['Subject'] = 'Air Quality Alert'
-	msg['From'] = 'air-report'
+	msg['From'] = sender_email
 	msg['To'] = 'jeremy.lorelli.1337@gmail.com'
 
 	body = "Poor air quality has been detected in the immediate vicinity of SLAC.\nThose who are sensitive to poor air quality should remain indoors.\nOthers should consider wearing masks or respirators\n\nSummary of the sensors and their detected AQIs:\n\n"

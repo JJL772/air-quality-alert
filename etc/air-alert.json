@@ -2,6 +2,7 @@
 	"email": {
 		"login_required": true,
 		"use_tls": true,
+		"sender_email": "your.email.here@example.com",
 		"email_addr": "jeremy.lorelli.1337@gmail.com",
 		"email_pw": "1234",
 		"smtp_addr": "smtp.gmail.com",

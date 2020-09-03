@@ -109,6 +109,7 @@ class SensorJSON():
 	Calculates the AQI based on this sensor's data.
 	This isn't an average value, only the current one returned by the sensor
 	What a horrible function! 
+	Equation documented at: https://forum.airnowtech.org/t/the-aqi-equation/169
 	"""
 	def calc_aqi(self) -> float:
 		conc_in = float(self.pm25)

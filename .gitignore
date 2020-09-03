@@ -1,1 +1,3 @@
 .vscode/
+etc/
+!etc/air-alert.json

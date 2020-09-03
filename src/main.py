@@ -165,6 +165,7 @@ def main():
 		if sensor.calc_aqi() > report_threshold:
 			bad = True
 	if not bad:
+		print("All AQIs are below the threshold.")
 		return
 
 	print("Air quality is above threshold of {0}. Sending email.".format(report_threshold))
@@ -181,10 +182,16 @@ def main():
 
 	msg.set_content(body)
 
+	
 	s = smtplib.SMTP(smtp_addr, smtp_port)
 	s.ehlo()
 	s.starttls()
-	s.login(user=email_addr, password=email_pw)
+	try:
+		s.login(user=email_addr, password=email_pw)
+	except smtplib.SMTPAuthenticationError:
+		print("Authentication failed for SMTP server")
+	except:
+		print("Error while authenticating SMTP server")
 	s.send_message(msg)
 	s.quit()
 

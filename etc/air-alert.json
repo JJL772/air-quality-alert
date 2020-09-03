@@ -1,0 +1,19 @@
+{
+	"email": {
+		"login_required": true,
+		"email_addr": "jeremy.lorelli.1337@gmail.com",
+		"email_pw": "1234",
+		"smtp_addr": "localhost",
+		"smtp_port": 224,
+		"addresses": [
+			"jeremy.lorelli.1337@gmail.com"
+		]
+	},
+	"report_threshold": 150,
+	"sensors": [
+		"61605",
+		"61217",
+		"38085",
+		"60059"
+	]
+}

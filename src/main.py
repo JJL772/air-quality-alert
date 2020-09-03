@@ -155,7 +155,9 @@ def grab_sensors():
 
 
 def main():
+	print("Populating sensor data...")
 	grab_sensors()
+	print("Done.")
 
 	# Test to make sure none of the sensors are higher than the max AQI
 	bad = False 
@@ -179,10 +181,10 @@ def main():
 
 	msg.set_content(body)
 
-	s = smtplib.SMTP('smtp.gmail.com', 587)
+	s = smtplib.SMTP(smtp_addr, smtp_port)
 	s.ehlo()
 	s.starttls()
-	s.login(user='jeremy.lorelli.1337@gmail.com', password='fsdf')
+	s.login(user=email_addr, password=email_pw)
 	s.send_message(msg)
 	s.quit()
 

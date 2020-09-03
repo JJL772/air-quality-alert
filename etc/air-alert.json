@@ -3,8 +3,8 @@
 		"login_required": true,
 		"email_addr": "jeremy.lorelli.1337@gmail.com",
 		"email_pw": "1234",
-		"smtp_addr": "localhost",
-		"smtp_port": 224,
+		"smtp_addr": "smtp.gmail.com",
+		"smtp_port": 587,
 		"addresses": [
 			"jeremy.lorelli.1337@gmail.com"
 		]

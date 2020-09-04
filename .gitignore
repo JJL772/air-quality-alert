@@ -1,3 +1,4 @@
 .vscode/
 etc/
 !etc/air-alert.json
+state.json

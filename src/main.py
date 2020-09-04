@@ -30,7 +30,7 @@ Configuration format
 }
 """
 
-import json, http, os, sys, email, smtplib, requests, argparse, time, datetime
+import json, http, os, sys, email, smtplib, requests, argparse, time, datetime, asyncio, threading
 
 argparse = argparse.ArgumentParser(description='Simple alert system for poor air quality')
 argparse.add_argument('--config', type=str, dest='config', default='/etc/air-alert.json', help='Path to the air quality alert config')
@@ -44,15 +44,18 @@ def log(_str):
 # Load the config
 cfg = None
 with open(args.config, "r") as fp:
-	cfg = json.load(fp)
+	try:
+		cfg = json.load(fp)
+	except:
+		print("Configuration failed to load: ")
 
 def get_or_set_default(section, name, default):
 	try:
 		if section[name] is None:
-			return default
+			raise Exception()
 		return section[name]
 	except:
-		return default 
+		raise Exception()
 
 # Try to set the sensors from the config. Default if it's not possible
 sensors = get_or_set_default(cfg, 'sensors', ["61605", "61217", "38085", "60059"])
@@ -72,7 +75,10 @@ report_threshold = get_or_set_default(cfg, 'report_threshold', 150)
 sender_email = get_or_set_default(cfg['email'], 'sender_email', '')
 cooldown_time = get_or_set_default(cfg, 'cooldown_time', 15)
 update_period = get_or_set_default(cfg, 'update_period', 60)
-
+status_email_hour = get_or_set_default(cfg, 'status_email_hour', 6) # The hour at which to send the email
+normal_email_text = get_or_set_default(cfg, 'normal_email_text', 'Configuration Error')
+unhealthy_email_text = get_or_set_default(cfg, 'unhealthy_email_text', 'Configuration Error')
+status_email_text = get_or_set_default(cfg, 'status_email_text', 'Configuration Error')
 sensor_data = []
 
 
@@ -137,9 +143,7 @@ class EmailProvider():
 		msg['From'] = sender_email
 		msg['Subject'] = 'Air Quality Alert'
 
-		content = "An unhealthy AQI has been detected in the immediate vicinity of SLAC.\n"
-		content += "Sensitive groups should stay indoors and use masks or respirators.\n"
-		content += "Others should limit their outdoor activities and consider using PPE\n\n"
+		content = unhealthy_email_text
 		content += "A summary of the sensor data follows:\n\n"
 
 		for sens in sensor_data:
@@ -158,7 +162,7 @@ class EmailProvider():
 		msg['From'] = sender_email
 		msg['Subject'] = 'Air Quality Alert'
 
-		content = "The air quality at SLAC has returned to safe or moderately safe levels\n"
+		content = normal_email_text
 		content += "A summary of the sensor data follows:\n\n"
 
 		for sens in sensor_data:
@@ -167,8 +171,26 @@ class EmailProvider():
 		msg.set_content(content)
 		self.smtp_server.send_message(msg)
 
+	def send_status_email(self):
+		msg = email.message.EmailMessage()
+		# Collect recipients
+		recipients = ""
+		for addr in addresses:
+			recipients += addr + ";"
+		msg['To'] = recipients
+		msg['From'] = sender_email
+		msg['Subject'] = 'Daily Air Quality Summary'
+
+		content = status_email_text
+
+		for sens in sensor_data:
+			content += "Location: {0}\nLast sampled: {1}\nAQI: {2}\n\n".format(sens.label, sens.pretty_last_seen(), int(sens.calc_aqi()))
+
+		msg.set_content(content)
+		self.smtp_server.send_message(msg)
+
 email_provider = EmailProvider()
-		
+email_mutex = threading.Lock()
 
 """
 Simple class that manages json data for each sensor
@@ -299,13 +321,32 @@ def newmain():
 
 	email_provider.send_high_email()
 
-
+def daily_email_thread():
+	while True:
+		# I hate nested loops 
+		while True:
+			now = datetime.datetime.now()
+			current_time = [now.hour, now.minute]
+			if current_time == [status_email_hour, 0]:
+				break 
+			else: 
+				time.sleep(20)
+		log("Sending daily status email")
+		email_mutex.acquire()
+		grab_sensors()
+		email_provider.send_status_email()
+		email_mutex.release()
+		time.sleep(120) # Hack so the timer doesnt get triggered immediately again
 
 def main():
+	threading.Thread(target=daily_email_thread).start()
 	while True:
+		# This mutex is actually so we can send daily emails without screwing up the sensor data if we update the sensors on 2 different threads
+		email_mutex.acquire()
 		newmain()
+		email_mutex.release()
 		state.save()
-		time.sleep(update_period)
+		time.sleep(update_period * 60)
 
 if __name__ == "__main__":
 	main()

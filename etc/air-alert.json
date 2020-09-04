@@ -11,10 +11,15 @@
 			"jeremy.lorelli.1337@gmail.com"
 		]
 	},
-	"report_threshold": 150,
+	"report_threshold": 1,
+	"update_period": 1,
+	"status_email_hour": 13,
+	"cooldown_time": 15,
+	"normal_email_text": "The air quality at SLAC has returned to safe or moderately safe levels\n",
+	"unhealthy_email_text": "An unhealthy AQI has been detected in the immediate vicinity of SLAC.\nSensitive groups should stay indoors and use masks or respirators.\nOthers should limit their outdoor activities and consider using PPE\n\n",
+	"status_email_text": "Good morning, here is your daily air quality summary:\n\n",
 	"sensors": [
 		"61605",
-		"61217",
 		"38085",
 		"60059"
 	]

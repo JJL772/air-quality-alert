@@ -145,10 +145,7 @@ class EmailProvider():
 	def send_high_email(self):
 		msg = email.message.EmailMessage()
 		# Collect recipients
-		recipients = ""
-		for addr in addresses:
-			recipients += addr + ";"
-		msg['To'] = recipients
+		msg['To'] = ", ".join(addresses)
 		msg['From'] = sender_email
 		msg['Subject'] = 'Air Quality Alert'
 
@@ -164,10 +161,7 @@ class EmailProvider():
 	def send_low_email(self):
 		msg = email.message.EmailMessage()
 		# Collect recipients
-		recipients = ""
-		for addr in addresses:
-			recipients += addr + ";"
-		msg['To'] = recipients
+		msg['To'] = ", ".join(addresses)
 		msg['From'] = sender_email
 		msg['Subject'] = 'Air Quality Alert'
 
@@ -183,10 +177,7 @@ class EmailProvider():
 	def send_status_email(self):
 		msg = email.message.EmailMessage()
 		# Collect recipients
-		recipients = ""
-		for addr in addresses:
-			recipients += addr + ";"
-		msg['To'] = recipients
+		msg['To'] = ", ".join(addresses)
 		msg['From'] = sender_email
 		msg['Subject'] = 'Daily Air Quality Summary'
 

@@ -135,14 +135,15 @@ class EmailProvider():
 			recipients += addr + ";"
 		msg['To'] = recipients
 		msg['From'] = sender_email
-		
+		msg['Subject'] = 'Air Quality Alert'
+
 		content = "An unhealthy AQI has been detected in the immediate vicinity of SLAC.\n"
 		content += "Sensitive groups should stay indoors and use masks or respirators.\n"
 		content += "Others should limit their outdoor activities and consider using PPE\n\n"
 		content += "A summary of the sensor data follows:\n\n"
 
 		for sens in sensor_data:
-			content += "Location: {0}\nLast sampled: {1}\nAQI: {2}\n\n".format(sens.label, sens.pretty_last_seen(), sens.calc_aqi())
+			content += "Location: {0}\nLast sampled: {1}\nAQI: {2}\n\n".format(sens.label, sens.pretty_last_seen(), int(sens.calc_aqi()))
 
 		msg.set_content(content)
 		self.smtp_server.send_message(msg)
@@ -155,12 +156,13 @@ class EmailProvider():
 			recipients += addr + ";"
 		msg['To'] = recipients
 		msg['From'] = sender_email
+		msg['Subject'] = 'Air Quality Alert'
 
 		content = "The air quality at SLAC has returned to safe or moderately safe levels\n"
 		content += "A summary of the sensor data follows:\n\n"
 
 		for sens in sensor_data:
-			content += "Location: {0}\nLast sampled: {1}\nAQI: {2}\n\n".format(sens.label, sens.pretty_last_seen(), sens.calc_aqi())
+			content += "Location: {0}\nLast sampled: {1}\nAQI: {2}\n\n".format(sens.label, sens.pretty_last_seen(), int(sens.calc_aqi()))
 
 		msg.set_content(content)
 		self.smtp_server.send_message(msg)
@@ -257,6 +259,7 @@ class SensorJSON():
 Grabs the latest sensor data from the sensors in the sensor list 
 """
 def grab_sensors():
+	sensor_data.clear()
 	for sensor in sensors:
 		sensor_data.append(SensorJSON.read_sensor(sensor))
 
@@ -288,8 +291,9 @@ def newmain():
 
 	# If it was high last time, let's not report again
 	if state.get_value('was_high'):
+		state.set_value('was_high', True)
 		return
-
+	state.set_value('was_high', True)
 	state.set_value('last_report_time', time.time())
 	log("An AQI above {0} was detected. Sending alert email".format(report_threshold))
 

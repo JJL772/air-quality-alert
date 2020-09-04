@@ -30,12 +30,16 @@ Configuration format
 }
 """
 
-import json, http, os, sys, email, smtplib, requests, argparse, time 
+import json, http, os, sys, email, smtplib, requests, argparse, time, datetime
 
 argparse = argparse.ArgumentParser(description='Simple alert system for poor air quality')
 argparse.add_argument('--config', type=str, dest='config', default='/etc/air-alert.json', help='Path to the air quality alert config')
 argparse.add_argument('--state-file', type=str, dest='statefile', default='/srv/air-alert-statefile.json', help='File where the app state is saved')
 args = argparse.parse_args()
+
+# Log print
+def log(_str):
+	print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())) + ": " + _str)
 
 # Load the config
 cfg = None
@@ -66,6 +70,8 @@ addresses = get_or_set_default(cfg['email'], 'addresses', [])
 use_tls = get_or_set_default(cfg['email'], 'use_tls', True)
 report_threshold = get_or_set_default(cfg, 'report_threshold', 150)
 sender_email = get_or_set_default(cfg['email'], 'sender_email', '')
+cooldown_time = get_or_set_default(cfg, 'cooldown_time', 15)
+update_period = get_or_set_default(cfg, 'update_period', 60)
 
 sensor_data = []
 
@@ -79,12 +85,20 @@ class GlobalState():
 	def __init__(self, state_save_file: str):
 		self.file = state_save_file
 		self.data = dict()
+		if os.path.exists(state_save_file):
+			self.load()
+		else:
+			# Just write out an empty file 
+			self.save()
 
 	def set_value(self, key: str, val):
 		self.data[key] = val
 	
-	def get_value(self, key: str):
-		return self.data[key]
+	def get_value(self, key: str, default=None):
+		try:
+			return self.data[key]
+		except:
+			return default
 	
 	def save(self):
 		with open(self.file, "w") as fp:
@@ -95,6 +109,64 @@ class GlobalState():
 			self.data = json.load(fp)
 			if not self.data:
 				self.data = dict()
+
+# Global state object
+state = GlobalState(args.statefile)
+
+class EmailProvider():
+	def __init__(self):
+		log("Connecting to SMTP server at {0}:{1}".format(smtp_addr, smtp_port))
+		self.smtp_server = smtplib.SMTP(smtp_addr, int(smtp_port))
+		self.smtp_server.ehlo() 
+		if use_tls:
+			self.smtp_server.starttls()
+		if login_required:
+			try: 
+				self.smtp_server.login(email_addr, email_pw)
+			except:
+				log("Fatal error: Login failed")
+				exit(1)
+	
+	def send_high_email(self):
+		msg = email.message.EmailMessage()
+		# Collect recipients
+		recipients = ""
+		for addr in addresses:
+			recipients += addr + ";"
+		msg['To'] = recipients
+		msg['From'] = sender_email
+		
+		content = "An unhealthy AQI has been detected in the immediate vicinity of SLAC.\n"
+		content += "Sensitive groups should stay indoors and use masks or respirators.\n"
+		content += "Others should limit their outdoor activities and consider using PPE\n\n"
+		content += "A summary of the sensor data follows:\n\n"
+
+		for sens in sensor_data:
+			content += "Location: {0}\nLast sampled: {1}\nAQI: {2}\n\n".format(sens.label, sens.pretty_last_seen(), sens.calc_aqi())
+
+		msg.set_content(content)
+		self.smtp_server.send_message(msg)
+
+	def send_low_email(self):
+		msg = email.message.EmailMessage()
+		# Collect recipients
+		recipients = ""
+		for addr in addresses:
+			recipients += addr + ";"
+		msg['To'] = recipients
+		msg['From'] = sender_email
+
+		content = "The air quality at SLAC has returned to safe or moderately safe levels\n"
+		content += "A summary of the sensor data follows:\n\n"
+
+		for sens in sensor_data:
+			content += "Location: {0}\nLast sampled: {1}\nAQI: {2}\n\n".format(sens.label, sens.pretty_last_seen(), sens.calc_aqi())
+
+		msg.set_content(content)
+		self.smtp_server.send_message(msg)
+
+email_provider = EmailProvider()
+		
 
 """
 Simple class that manages json data for each sensor
@@ -190,54 +262,45 @@ def grab_sensors():
 
 
 def newmain():
-	print("Populating sensor data...")
+	log("Populating sensor data...")
 	grab_sensors()
-	print("Done.")
+	log("Done.")
 
-def main():
-	print("Populating sensor data...")
-	grab_sensors()
-	print("Done.")
-
-	# Test to make sure none of the sensors are higher than the max AQI
-	bad = False 
+	bad = False
+	aqi = 0
 	for sensor in sensor_data:
-		if sensor.calc_aqi() > report_threshold:
+		saqi = sensor.calc_aqi()
+		if saqi > report_threshold:
 			bad = True
+			if saqi > aqi:
+				aqi = saqi
 	if not bad:
-		print("All AQIs are below the threshold.")
+		log("All sensors reported an AQI within the acceptable range.")
+		if state.get_value('was_high') is True:
+			log("Cooldown timer started....")
+			time.sleep(cooldown_time * 60) # Sleep for a cooldown time so we don't spam the email if we hover around a specific time
+			log("...Finished. Sending email")
+			email_provider.send_low_email()
+
+		state.set_value('was_high', False)
+		return
+	state.set_value('last_high_aqi', aqi)
+
+	# If it was high last time, let's not report again
+	if state.get_value('was_high'):
 		return
 
-	print("Air quality is above threshold of {0}. Sending email.".format(report_threshold))
+	state.set_value('last_report_time', time.time())
+	log("An AQI above {0} was detected. Sending alert email".format(report_threshold))
 
-	msg = email.message.EmailMessage() 
-	msg['Subject'] = 'Air Quality Alert'
-	msg['From'] = sender_email
-	emails = ""
-	for _email in addresses:
-		emails += str(_email) + ';'
-	msg['To'] = emails
+	email_provider.send_high_email()
 
-	body = "Poor air quality has been detected in the immediate vicinity of SLAC.\nThose who are sensitive to poor air quality should remain indoors.\nOthers should consider wearing masks or respirators\n\nSummary of the sensors and their detected AQIs:\n\n"
 
-	for sensor in sensor_data:
-		body += "Location: {0}\nLast Sampled: {2}\nAQI: {1}\n\n".format(sensor.label, int(sensor.calc_aqi()), sensor.pretty_last_seen())
 
-	msg.set_content(body)
-
-	s = smtplib.SMTP(smtp_addr, smtp_port)
-	s.ehlo()
-	if use_tls:
-		s.starttls()
-	if login_required:
-		try:
-			s.login(user=email_addr, password=email_pw)
-		except smtplib.SMTPAuthenticationError:
-			print("Authentication failed for SMTP server")
-		except:
-			print("Error while authenticating SMTP server")
-	s.send_message(msg)
-	s.quit()
+def main():
+	while True:
+		newmain()
+		time.sleep(update_period)
 
 if __name__ == "__main__":
 	main()

@@ -1,29 +1,38 @@
 #!/usr/bin/env python3
 
-#
-# Simple air-quality alert system using the purple-air API
-#
+"""
+This file is part of AirAlert. It is subject to 
+the license terms in the LICENSE.txt file found in the top-level directory 
+of this distribution and at: 
+   https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html. 
+No part of AirAlert, including this file, may be 
+copied, modified, propagated, or distributed except according to the terms 
+contained in the LICENSE.txt file.
+"""
 
 """
-Configuration format 
 {
 	"email": {
 		"login_required": true,
 		"use_tls": true,
-		"email_addr": "jeremy.lorelli.1337@gmail.com", // Email address to send FROM 
+		"sender_email": "your.email.here@example.com",
+		"email_addr": "jeremy.lorelli.1337@gmail.com",
 		"email_pw": "1234",
-		"smtp_addr": "localhost",
-		"smtp_port": 224,
-		// Addresses to send the status emails to
+		"smtp_addr": "smtp.gmail.com",
+		"smtp_port": 587,
 		"addresses": [
 			"jeremy.lorelli.1337@gmail.com"
 		]
 	},
-	"report_threshold": 150, // An AQI over this number will trigger a report 
-	// These are sensor IDs obtained from the sensor map 
+	"report_threshold": 1,
+	"update_period": 1,
+	"status_email_hour": 13,
+	"cooldown_time": 15,
+	"normal_email_text": "The air quality at SLAC has returned to safe or moderately safe levels\n",
+	"unhealthy_email_text": "An unhealthy AQI has been detected in the immediate vicinity of SLAC.\nSensitive groups should stay indoors and use masks or respirators.\nOthers should limit their outdoor activities and consider using PPE\n\n",
+	"status_email_text": "Good morning, here is your daily air quality summary:\n\n",
 	"sensors": [
 		"61605",
-		"61217",
 		"38085",
 		"60059"
 	]

@@ -304,6 +304,7 @@ def newmain():
 def main():
 	while True:
 		newmain()
+		state.save()
 		time.sleep(update_period)
 
 if __name__ == "__main__":

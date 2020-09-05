@@ -88,9 +88,22 @@ status_email_hour = get_or_set_default(cfg, 'status_email_hour', 6) # The hour a
 normal_email_text = get_or_set_default(cfg, 'normal_email_text', 'Configuration Error')
 unhealthy_email_text = get_or_set_default(cfg, 'unhealthy_email_text', 'Configuration Error')
 status_email_text = get_or_set_default(cfg, 'status_email_text', 'Configuration Error')
+air_qualities = get_or_set_default(cfg, 'qualities', {})
 sensor_data = []
 
-
+def get_aqi_string(aqi):
+	if aqi <= 50:
+		return air_qualities['good']
+	elif aqi <= 100:
+		return air_qualities['moderate']
+	elif aqi <= 150:
+		return air_qualities['unhealthy_s']
+	elif aqi <= 200:
+		return air_qualities['unhealthy']
+	elif aqi <= 300:
+		return air_qualities['unhealthy_v']
+	else:
+		return air_qualities['hazardous']
 
 """
 GlobalState class which handles any and all global state.
@@ -142,14 +155,14 @@ class EmailProvider():
 				log("Fatal error: Login failed")
 				exit(1)
 	
-	def send_high_email(self):
+	def send_high_email(self, aqi):
 		msg = email.message.EmailMessage()
 		# Collect recipients
 		msg['To'] = ", ".join(addresses)
 		msg['From'] = sender_email
 		msg['Subject'] = 'Air Quality Alert'
 
-		content = unhealthy_email_text
+		content = unhealthy_email_text.replace('$LEVEL_STRING', get_aqi_string(aqi)).replace('$AQI', str(aqi))
 		content += "A summary of the sensor data follows:\n\n"
 
 		for sens in sensor_data:
@@ -158,14 +171,14 @@ class EmailProvider():
 		msg.set_content(content)
 		self.smtp_server.send_message(msg)
 
-	def send_low_email(self):
+	def send_low_email(self, aqi):
 		msg = email.message.EmailMessage()
 		# Collect recipients
 		msg['To'] = ", ".join(addresses)
 		msg['From'] = sender_email
 		msg['Subject'] = 'Air Quality Alert'
 
-		content = normal_email_text
+		content = normal_email_text.replace('$LEVEL_STRING', get_aqi_string(aqi)).replace('$AQI', str(aqi))
 		content += "A summary of the sensor data follows:\n\n"
 
 		for sens in sensor_data:
@@ -174,14 +187,14 @@ class EmailProvider():
 		msg.set_content(content)
 		self.smtp_server.send_message(msg)
 
-	def send_status_email(self):
+	def send_status_email(self, aqi):
 		msg = email.message.EmailMessage()
 		# Collect recipients
 		msg['To'] = ", ".join(addresses)
 		msg['From'] = sender_email
 		msg['Subject'] = 'Daily Air Quality Summary'
 
-		content = status_email_text
+		content = status_email_text.replace('$LEVEL_STRING', get_aqi_string(aqi)).replace('$AQI', str(aqi))
 
 		for sens in sensor_data:
 			content += "Location: {0}\nLast sampled: {1}\nAQI: {2}\n\n".format(sens.label, sens.pretty_last_seen(), int(sens.calc_aqi()))
@@ -305,7 +318,7 @@ def newmain():
 			log("Cooldown timer started....")
 			time.sleep(cooldown_time * 60) # Sleep for a cooldown time so we don't spam the email if we hover around a specific time
 			log("...Finished. Sending email")
-			email_provider.send_low_email()
+			email_provider.send_low_email(round(aqi))
 
 		state.set_value('was_high', False)
 		return
@@ -319,7 +332,7 @@ def newmain():
 	state.set_value('last_report_time', time.time())
 	log("An AQI above {0} was detected. Sending alert email".format(report_threshold))
 
-	email_provider.send_high_email()
+	email_provider.send_high_email(round(aqi))
 
 def daily_email_thread():
 	while True:
@@ -334,7 +347,13 @@ def daily_email_thread():
 		log("Sending daily status email")
 		email_mutex.acquire()
 		grab_sensors()
-		email_provider.send_status_email()
+		# TODO: Clean this up...
+		aqi = 0.0
+		for sensor in sensor_data:
+			saqi = sensor.calc_aqi()
+			if saqi > aqi:
+				aqi = saqi
+		email_provider.send_status_email(round(aqi))
 		email_mutex.release()
 		time.sleep(120) # Hack so the timer doesnt get triggered immediately again
 

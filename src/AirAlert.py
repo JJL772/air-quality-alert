@@ -10,6 +10,8 @@ copied, modified, propagated, or distributed except according to the terms
 contained in the LICENSE.txt file.
 """
 
+# TODO: Clean this script up. It's quite a mess
+
 """
 {
 	"email": {
@@ -44,6 +46,7 @@ import json, http, os, sys, email, smtplib, requests, argparse, time, datetime, 
 argparse = argparse.ArgumentParser(description='Simple alert system for poor air quality')
 argparse.add_argument('--config', type=str, dest='config', default='/etc/air-alert.json', help='Path to the air quality alert config')
 argparse.add_argument('--state-file', type=str, dest='statefile', default='/srv/air-alert-statefile.json', help='File where the app state is saved')
+argparse.add_argument('--daemonize', action='store_true', dest='DAEMON', help='Run the script as a daemon')
 args = argparse.parse_args()
 
 # Log print
@@ -300,9 +303,10 @@ def grab_sensors():
 
 
 def newmain():
-	log("Populating sensor data...")
-	grab_sensors()
-	log("Done.")
+	if args.DAEMON:
+		log("Populating sensor data...")
+		grab_sensors()
+		log("Done.")
 
 	bad = False
 	aqi = 0
@@ -358,14 +362,32 @@ def daily_email_thread():
 		time.sleep(120) # Hack so the timer doesnt get triggered immediately again
 
 def main():
-	threading.Thread(target=daily_email_thread).start()
-	while True:
-		# This mutex is actually so we can send daily emails without screwing up the sensor data if we update the sensors on 2 different threads
-		email_mutex.acquire()
+	if args.DAEMON:	
+		threading.Thread(target=daily_email_thread).start()
+		while True:
+			# This mutex is actually so we can send daily emails without screwing up the sensor data if we update the sensors on 2 different threads
+			email_mutex.acquire()
+			newmain()
+			email_mutex.release()
+			state.save()
+			time.sleep(update_period * 60)
+	else:
+		log("Populating sensor data...")
+		grab_sensors()
+		log("Done.")
+		# Daily status email 
+		now = datetime.datetime.now()
+		if now.hour == status_email_hour:
+			# TODO: Clean this up...
+			aqi = 0.0
+			for sensor in sensor_data:
+				saqi = sensor.calc_aqi()
+				if saqi > aqi:
+					aqi = saqi
+			email_provider.send_status_email(round(aqi))
+		# Run normal routine
 		newmain()
-		email_mutex.release()
 		state.save()
-		time.sleep(update_period * 60)
 
 if __name__ == "__main__":
 	main()

@@ -18,6 +18,7 @@
 	"normal_email_text": "The air quality at SLAC has returned to $LEVEL_STRING levels. (AQI=$AQI)\n",
 	"unhealthy_email_text": "The Air Quality Index at SLAC has reached $LEVEL_STRING levels. (AQI=$AQI)\nSensitive groups should stay indoors and use masks or respirators.\nOthers should limit their outdoor activities and consider using PPE\n\n",
 	"status_email_text": "Good morning, the air quality at SLAC is: $LEVEL_STRING. (AQI=$AQI)\nHere is a summary of all sensor data:\n\n",
+	"proxies": [],
 	"qualities": {
 		"good": "good (Green)",
 		"moderate": "moderate (Yellow)",

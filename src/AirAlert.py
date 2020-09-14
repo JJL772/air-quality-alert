@@ -387,8 +387,35 @@ def main():
 				if saqi > aqi:
 					aqi = saqi
 			email_provider.send_status_email(round(aqi))
-		# Run normal routine
-		newmain()
+
+		# Handle the Normal reporting 
+		if args.DAEMON:
+			log("Populating sensor data...")
+			grab_sensors()
+			log("Done.")
+
+		# Find the highest AQI in the sensors list 
+		aqi = 0.0
+		for sensor in sensor_data:
+			saqi = sensor.calc_aqi()
+			if saqi > aqi:
+				aqi = saqi
+		
+		# Hardcoded for now.........
+		last = state.get_value('last_aqi', default=0)
+		if aqi < 50:
+			return 
+		
+		# Crossing the 50 threshold from below 
+		if aqi >= 50 and aqi < 100 and last < 50:
+			email_provider.send_high_email(round(aqi))
+		# Crossing the 50-100 threshold from above 
+		elif aqi > 50 and aqi < 100 and last >= 100:
+			email_provider.send_high_email(round(aqi))
+		# Crossing the 100+ threshold from below 
+		elif aqi >= 100 and last < 100:
+			email_provider.send_high_email(round(aqi))
+		state.set_value('last_aqi', aqi)
 		state.save()
 
 if __name__ == "__main__":

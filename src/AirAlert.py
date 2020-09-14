@@ -379,7 +379,7 @@ def main():
 		log("Done.")
 		# Daily status email 
 		now = datetime.datetime.now()
-		if now.hour == status_email_hour:
+		if now.hour == status_email_hour and now.minute < 5: # Quick hack here...Just want to make sure that we run within the first 5 minutes of the hour.
 			# TODO: Clean this up...
 			aqi = 0.0
 			for sensor in sensor_data:

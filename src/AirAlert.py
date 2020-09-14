@@ -93,7 +93,7 @@ normal_email_text = get_or_set_default(cfg, 'normal_email_text', 'Configuration 
 unhealthy_email_text = get_or_set_default(cfg, 'unhealthy_email_text', 'Configuration Error')
 status_email_text = get_or_set_default(cfg, 'status_email_text', 'Configuration Error')
 air_qualities = get_or_set_default(cfg, 'qualities', {})
-proxies = get_or_set_default(cfg, 'proxies', [])
+proxies = get_or_set_default(cfg, 'proxies', {})
 sensor_data = []
 
 def get_aqi_string(aqi):
@@ -220,7 +220,7 @@ class SensorJSON():
 	"""
 	@staticmethod
 	def read_sensor(sensor: str):
-		req = requests.get('https://www.purpleair.com/json?show={0}'.format(sensor), proxies=proxies)
+		req = requests.get('http://www.purpleair.com/json?show={0}'.format(sensor), proxies=proxies)
 		if(req.status_code != 200):
 			print("Failed to get sensor data for sensor with id {0}".format(sensor))
 		return SensorJSON(req.content)

@@ -410,7 +410,7 @@ def main():
 		if aqi >= 50 and aqi < 100 and last < 50:
 			email_provider.send_high_email(round(aqi))
 		# Crossing the 50-100 threshold from above 
-		elif aqi > 50 and aqi < 100 and last >= 100:
+		elif aqi >= 50 and aqi < 100 and last >= 100:
 			email_provider.send_high_email(round(aqi))
 		# Crossing the 100+ threshold from below 
 		elif aqi >= 100 and last < 100:

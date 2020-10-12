@@ -400,8 +400,7 @@ def main():
 		for sensor in sensor_data:
 			aqilist.append(sensor.calc_aqi())
 		aqilist.remove(max(aqilist)) # Average of two lowest 
-		for a in aqilist: aqi += a
-		aqi = aqi / len(aqilist)
+		aqi = max(aqilist)
 
 		# Hardcoded for now.........
 		last = state.get_value('last_aqi', default=0)

@@ -405,7 +405,7 @@ def main():
 
 		# Hardcoded for now.........
 		last = state.get_value('last_aqi', default=0)
-		if aqi < 50 and last >= 50:
+		if aqi < 45 and last > 50:
 			email_provider.send_low_email(round(aqi))
 			state.set_value('last_aqi', aqi)
 			state.save()

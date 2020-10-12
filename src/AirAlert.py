@@ -394,12 +394,12 @@ def main():
 			grab_sensors()
 			log("Done.")
 
-		# Remove the bottommost outlier here and average the rest
+		# Remove the topmost outlier here and average the rest
 		aqi = 0.0
 		aqilist = []
 		for sensor in sensor_data:
 			aqilist.append(sensor.calc_aqi())
-		aqilist.remove(min(aqilist))
+		aqilist.remove(max(aqilist)) # Average of two lowest 
 		for a in aqilist: aqi += a
 		aqi = aqi / len(aqilist)
 

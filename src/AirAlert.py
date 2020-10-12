@@ -398,7 +398,7 @@ def main():
 		aqi = 0.0
 		aqilist = []
 		for sensor in sensor_data:
-			aqilist += sensor.calc_aqi()
+			aqilist.append(sensor.calc_aqi())
 		aqilist.remove(min(aqilist))
 		for a in aqilist: aqi += a
 		aqi = aqi / len(aqilist)

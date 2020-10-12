@@ -1,6 +1,6 @@
 ## Air Alert
 
-A quick and dirty python application that sends you emails when the AQI for a group of sensors goes high.
+A quick and dirty python application that sends you emails when the AQI for a group of sensors goes high. This was written in about a day so the code quality is pretty poor. 
 
 ### Usage
 

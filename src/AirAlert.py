@@ -394,13 +394,15 @@ def main():
 			grab_sensors()
 			log("Done.")
 
-		# Find the highest AQI in the sensors list 
+		# Remove the bottommost outlier here and average the rest
 		aqi = 0.0
+		aqilist = []
 		for sensor in sensor_data:
-			saqi = sensor.calc_aqi()
-			if saqi > aqi:
-				aqi = saqi
-		
+			aqilist += sensor.calc_aqi()
+		aqilist.remove(min(aqilist))
+		for a in aqilist: aqi += a
+		aqi = aqi / len(aqilist)
+
 		# Hardcoded for now.........
 		last = state.get_value('last_aqi', default=0)
 		if aqi < 50 and last >= 50:
